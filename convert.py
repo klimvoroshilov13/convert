@@ -9,19 +9,38 @@ from com.sun.star.awt.MessageBoxButtons import BUTTONS_OK, BUTTONS_OK_CANCEL, BU
 from com.sun.star.awt.MessageBoxResults import OK, YES, NO, CANCEL
 
 
-class Error:
+class Helpers:
+
     @staticmethod
-    def showMessage(parentwin, error):
+    def showError(parentwin, error):
         box = parentwin.getToolkit().createMessageBox(
             parentwin, ERRORBOX, BUTTONS_OK, "Ошибка", error)
         box.execute()
+
+    @staticmethod
+    def getMonthNum(month):
+        months = {
+            "янв": "01",
+            "фев": "02",
+            "мар": "03",
+            "апр": "04",
+            "май": "05",
+            "июн": "06",
+            "июл": "07",
+            "авг": "08",
+            "сен": "09",
+            "окт": "10",
+            "ноя": "11",
+            "дек": "12"}
+        month = month[0:3]
+        return months.get(month, False)
 
 
 def main(*args):
     root = {"Файл": {"ВерсФорм": "1.00", "ВерсПрог": "convert", "ИдФайл": "ON_NSCHFDOPPR_"}}
     branchs = {
         "СвУчДокОбор": {"ИдПол": "", "ИдОтпр": ""},
-    "Документ": {"Функция": "СЧФ", "НаимЭконСубСост": "", "ДатаИнфПр": "", "ВремИнфПр": "00.00.00", "КНД": "1115131"},
+        "Документ": {"Функция": "СЧФ", "НаимЭконСубСост": "", "ДатаИнфПр": "", "ВремИнфПр": "00.00.00", "КНД": "1115131"},
         "СвСчФакт": {"КодОКВ": "", "ДатаСчФ": "", "НомерСчФ": ""},
         "СведТов": {
             "СтТовУчНал": "", "НалСт": "", "СтТовБезНДС": "", "ЦенаТов": "", "КолТов": "", "ОКЕИ_Тов": "", "НаимТов": "", "НомСтр": ""},
@@ -63,18 +82,43 @@ def main(*args):
         string = sheet.getCellRangeByName("B2").String
         string = string[string.find("№") + 2:len(string)]
         space = 0
-        date = ""
+        day = ""
+        month = ""
+        year = ""
         for i in string:
             if i != " ":
                 if space == 0:
                     branchs["СвСчФакт"]["НомерСчФ"] += i
-                elif space >= 2:
-                    date += i
+                elif space == 2:
+                    day += i
+                elif space == 3:
+                    month += i
+                elif space == 4:
+                    year += i
             else:
                 space += 1
+        if space != 5:
+            error = "Error incorrect cell B2 entry "
+            Helpers.showError(parentwin, error)
+            try:
+                sys.exit()
+            except SystemExit:
+                return None
+        monthNum = Helpers.getMonthNum(month)
+        if monthNum:
+            date = day + "." + monthNum + "." + year
+            branchs["Документ"]["ДатаИнфПр"] = date
+            branchs["СвСчФакт"]["ДатаСчФ"] = date
+        else:
+            error = "Error incorrect date in cell B2"
+            Helpers.showError(parentwin, error)
+            try:
+                sys.exit()
+            except SystemExit:
+                return None
     else:
         error = "Error getting information in cell B2"
-        Error.showMessage(parentwin, error)
+        Helpers.showError(parentwin, error)
         try:
             sys.exit()
         except SystemExit:
