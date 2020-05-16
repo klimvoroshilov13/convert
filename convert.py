@@ -35,6 +35,19 @@ class Helpers:
         month = month[0:3]
         return months.get(month, False)
 
+    @staticmethod
+    def getData(parentwin, headDocument, string, cell, step=2):
+        if re.search(headDocument, string):
+            string = string[len(headDocument) + step:len(string)]
+        else:
+            error = "Error getting information in cell " + cell
+            Helpers.showError(parentwin, error)
+            try:
+                sys.exit()
+            except SystemExit:
+                return None
+        return string
+
 
 def main(*args):
     root = {"Файл": {"ВерсФорм": "1.00", "ВерсПрог": "convert", "ИдФайл": "ON_NSCHFDOPPR_"}}
@@ -56,7 +69,8 @@ def main(*args):
         "СумНал": None,
         "СумНалВсего": None,
         "Подписант": None}
-    leafs = {"СвОЭДОтпр": {"ИдЭДО": "", "ИННЮЛ": "", "НаимОрг": "Наименование ЮЛ Оператора"},
+    leafs = {
+        "СвОЭДОтпр": {"ИдЭДО": "", "ИННЮЛ": "", "НаимОрг": "Наименование ЮЛ Оператора"},
         "СвЮЛПрод": {"Name": "СвЮЛУч", "ИННЮЛ": "", "НаимОрг": "", "КПП": ""},
         "АдрИнфПрод": {"Name": "АдрИнф", "АдрТекст": "", "КодСтр": ""},
         "СвЮЛПокуп": {"Name": "СвЮЛУч", "ИННЮЛ": "", "НаимОрг": "", "КПП": ""},
@@ -78,51 +92,81 @@ def main(*args):
     sheets = model.Sheets
     parentwin = model.CurrentController.Frame.ContainerWindow
     sheet = sheets[0]
-    if re.search(headDocument[0], sheet.getCellRangeByName("B2").String):
-        string = sheet.getCellRangeByName("B2").String
-        string = string[string.find("№") + 2:len(string)]
-        space = 0
-        day = ""
-        month = ""
-        year = ""
-        for i in string:
-            if i != " ":
-                if space == 0:
-                    branchs["СвСчФакт"]["НомерСчФ"] += i
-                elif space == 2:
-                    day += i
-                elif space == 3:
-                    month += i
-                elif space == 4:
-                    year += i
-            else:
-                space += 1
-        if space != 5:
-            error = "Error incorrect cell B2 entry "
-            Helpers.showError(parentwin, error)
-            try:
-                sys.exit()
-            except SystemExit:
-                return None
-        monthNum = Helpers.getMonthNum(month)
-        if monthNum:
-            date = day + "." + monthNum + "." + year
-            branchs["Документ"]["ДатаИнфПр"] = date
-            branchs["СвСчФакт"]["ДатаСчФ"] = date
+    # Cell B2
+    string = Helpers.getData(parentwin, headDocument[0], sheet.getCellRangeByName("B2").String, "B2", 3)
+    space = 0
+    day = ""
+    month = ""
+    year = ""
+    for i in string:
+        if i != " ":
+            if space == 0:
+                branchs["СвСчФакт"]["НомерСчФ"] += i
+            elif space == 2:
+                day += i
+            elif space == 3:
+                month += i
+            elif space == 4:
+                year += i
+            elif space > 5:
+                error = "Error incorrect cell B2 entry "
+                Helpers.showError(parentwin, error)
+                try:
+                    sys.exit()
+                except SystemExit:
+                    return None
         else:
-            error = "Error incorrect date in cell B2"
-            Helpers.showError(parentwin, error)
-            try:
-                sys.exit()
-            except SystemExit:
-                return None
+            space += 1
+    monthNum = Helpers.getMonthNum(month)
+    if monthNum:
+        date = day + "." + monthNum + "." + year
+        branchs["Документ"]["ДатаИнфПр"] = date
+        branchs["СвСчФакт"]["ДатаСчФ"] = date
     else:
-        error = "Error getting information in cell B2"
+        error = "Error incorrect date in cell B2"
         Helpers.showError(parentwin, error)
         try:
             sys.exit()
         except SystemExit:
             return None
+    # Cell B4
+    string = Helpers.getData(parentwin, headDocument[1], sheet.getCellRangeByName("B4").String, "B4")
+    leafs["СвЮЛПрод"]["НаимОрг"] = string
+    # Cell B5
+    string = Helpers.getData(parentwin, headDocument[2], sheet.getCellRangeByName("B5").String, "B5")
+    leafs["АдрИнфПрод"]["АдрТекст"] = string
+    # Cell B6
+    string = Helpers.getData(parentwin, headDocument[3], sheet.getCellRangeByName("B6").String, "B6")
+    slash = 0
+    for i in string:
+        if i != "/":
+            if slash == 0:
+                leafs["СвЮЛПрод"]["ИННЮЛ"] += i
+            elif slash == 1:
+                leafs["СвЮЛПрод"]["КПП"] += i
+        else:
+            slash += 1
+    # Cell B10
+    string = Helpers.getData(parentwin, headDocument[4], sheet.getCellRangeByName("B10").String, "B10")
+    leafs["СвЮЛПокуп"]["НаимОрг"] = string
+    # Cell B11
+    string = Helpers.getData(parentwin, headDocument[5], sheet.getCellRangeByName("B11").String, "B11")
+    leafs["АдрИнфПокуп"]["АдрТекст"] = string
+    # Cell B12
+    string = Helpers.getData(parentwin, headDocument[6], sheet.getCellRangeByName("B12").String, "B12")
+    slash = 0
+    for i in string:
+        if i != "/":
+            if slash == 0:
+                leafs["СвЮЛПокуп"]["ИННЮЛ"] += i
+            elif slash == 1:
+                leafs["СвЮЛПокуп"]["КПП"] += i
+        else:
+            slash += 1
+    # Cell B13
+    string = Helpers.getData(parentwin, headDocument[7], sheet.getCellRangeByName("B13").String, "B13", 38)
+    leafs["АдрИнфПрод"]["КодСтр"] = string
+    leafs["АдрИнфПокуп"]["КодСтр"] = string
 
     for i in [*bodyDocument]:
         pass
