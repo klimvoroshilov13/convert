@@ -55,20 +55,18 @@ def main(*args):
         "СвУчДокОбор": {"ИдПол": "", "ИдОтпр": ""},
         "Документ": {"Функция": "СЧФ", "НаимЭконСубСост": "", "ДатаИнфПр": "", "ВремИнфПр": "00.00.00", "КНД": "1115131"},
         "СвСчФакт": {"КодОКВ": "", "ДатаСчФ": "", "НомерСчФ": ""},
-        "СведТов": {
-            "СтТовУчНал": "", "НалСт": "", "СтТовБезНДС": "", "ЦенаТов": "", "КолТов": "", "ОКЕИ_Тов": "", "НаимТов": "", "НомСтр": ""},
-        "ВсегоОпл": {"СтТовУчНалВсего": "", "СтТовБезНДСВсего": ""},
-        "ЮЛ": {"ИННЮЛ": "", "Должн": ""}}
-    node = {
-        "СвПрод": None,
+        "СвПрод": None, "ИдСв": None, "Адрес": None,
         "СвПокуп": None,
-        "ИдСв": None,
-        "Адрес": None,
         "ТаблСчФакт": None,
+        "СведТов": {
+            "НомСтр": "", "НаимТов": "", "ОКЕИ_Тов": "", "НаимЕдИзм": "", "КолТов": "",
+            "ЦенаТов": "", "СтТовБезНДС": "", "БезАкциз": "", "НалСт": "", "СумНал": "", "СтТовУчНал": ""},
         "Акциз": None,
         "СумНал": None,
+        "ВсегоОпл": {"СтТовУчНалВсего": "", "СтТовБезНДСВсего": ""},
         "СумНалВсего": None,
-        "Подписант": None}
+        "Подписант": None,
+        "ЮЛ": {"ИННЮЛ": "", "Должн": ""}}
     leafs = {
         "СвОЭДОтпр": {"ИдЭДО": "", "ИННЮЛ": "", "НаимОрг": "Наименование ЮЛ Оператора"},
         "СвЮЛПрод": {"Name": "СвЮЛУч", "ИННЮЛ": "", "НаимОрг": "", "КПП": ""},
@@ -82,14 +80,22 @@ def main(*args):
     headDocument = [
         "Счет-фактура", "Продавец", "Адрес", "ИНН/КПП продавца", "Покупатель", "Адрес", "ИНН/КПП покупателя", "Валюта"]
     bodyDocument = [
-        "Наименование товара", "код", "условное обозначение", "Коли-чество", "Цена", "без налога - всего", "сумма акциза",
-        "Налоговая ставка", "Сумма налога", "с налогом - всего"]
+        "НомСтр", "НаимТов", "ОКЕИ_Тов", "НаимЕдИзм", "КолТов",
+        "ЦенаТов", "СтТовБезНДС", "БезАкциз", "НалСт", "СумНал", "СтТовУчНал"]
     cellsDocument = ["B", "F", "I", "K", "M", "O", "R", "S", "V", "X"]
 
         # get the doc from the scripting context.which is made available to all scripts
     desktop = XSCRIPTCONTEXT.getDesktop()
     model = desktop.getCurrentComponent()
     sheets = model.Sheets
+    fullPath = model.URL[8:len(model.URL)]
+    path = ""
+    count = 0
+    for i in fullPath:
+        if i != "%" and count == 0:
+            path += i
+        else:
+            count += 1
     parentwin = model.CurrentController.Frame.ContainerWindow
     sheet = sheets[0]
     # Cell B2
@@ -167,8 +173,29 @@ def main(*args):
     string = Helpers.getData(parentwin, headDocument[7], sheet.getCellRangeByName("B13").String, "B13", 38)
     leafs["АдрИнфПрод"]["КодСтр"] = string
     leafs["АдрИнфПокуп"]["КодСтр"] = string
+    # Row 18
+    j = 1
+    for i in [*cellsDocument]:
+        if sheet.getCellRangeByName(i + "18").String:
+            string = sheet.getCellRangeByName(i + "18").String
+            string = string.replace("\xa0", "")
+            branchs["СведТов"][bodyDocument[j]] = string.replace(",", ".")
+            j += 1
+        else:
+            error = "Error incorrect date in cell " + i + "18"
+            Helpers.showError(parentwin, error)
+            try:
+                sys.exit()
+            except SystemExit:
+                return None
+    data["БезАкциз"] = branchs["СведТов"]["БезАкциз"]
+    data["СумНал"] = float(branchs["СведТов"]["СумНал"])
 
-    for i in [*bodyDocument]:
-        pass
+    try:
+        with open(path + branchs["Документ"]["Функция"] + "№" + branchs["СвСчФакт"]["НомерСчФ"] + " от " + branchs["СвСчФакт"]["ДатаСчФ"] + ".xml", "w") as f:
+            f.write(fullPath)
+    except IOError:
+        error = "Error opening file"
+        Helpers.showError(parentwin, error)
 
     return None
