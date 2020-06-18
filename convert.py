@@ -48,6 +48,22 @@ class Helpers:
                 return None
         return string
 
+    @staticmethod
+    def createTag(name: str = None, text: str = None, attributes: dict = None, *, cdata: bool = False):
+        doc = minidom.Document()
+        if name is None:
+            return doc
+        tag = doc.createElement(name)
+        if text is not None:
+            if cdata is True:
+                tag.appendChild(doc.createCDATASection(text))
+            else:
+                tag.appendChild(doc.createTextNode(text))
+        if attributes is not None:
+            for k, v in attributes.items():
+                tag.setAttribute(k, str(v))
+        return tag
+
 
 def main(*args):
     root = {"Файл": {"ВерсФорм": "1.00", "ВерсПрог": "convert", "ИдФайл": "ON_NSCHFDOPPR_"}}
@@ -192,7 +208,8 @@ def main(*args):
     data["СумНал"] = float(branchs["СведТов"]["СумНал"])
 
     try:
-        with open(path + branchs["Документ"]["Функция"] + "№" + branchs["СвСчФакт"]["НомерСчФ"] + " от " + branchs["СвСчФакт"]["ДатаСчФ"] + ".xml", "w") as f:
+        with open(path + branchs["Документ"]["Функция"] + " №" + branchs["СвСчФакт"]["НомерСчФ"] + " от " + branchs["СвСчФакт"]["ДатаСчФ"] + ".xml", "w") as f:
+            fullPath = "<?xml version=\"1.0\" ?>" + "<root>" + "<leaf color=\"white\">" + fullPath + "</leaf>" + "<root>"
             f.write(fullPath)
     except IOError:
         error = "Error opening file"
