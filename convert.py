@@ -3,6 +3,8 @@
 # python imports
 import sys
 import re
+import string
+import collections
 from xml.dom import minidom
 from com.sun.star.awt.MessageBoxType import MESSAGEBOX, INFOBOX, WARNINGBOX, ERRORBOX, QUERYBOX
 from com.sun.star.awt.MessageBoxButtons import BUTTONS_OK, BUTTONS_OK_CANCEL, BUTTONS_YES_NO, BUTTONS_YES_NO_CANCEL, BUTTONS_RETRY_CANCEL, BUTTONS_ABORT_IGNORE_RETRY
@@ -66,7 +68,7 @@ class Helpers:
 
 
 def main(*args):
-    root = {"Файл": {"ВерсФорм": "1.00", "ВерсПрог": "convert", "ИдФайл": "ON_NSCHFDOPPR_"}}
+    root = {"Файл": {"ИдФайл": "ON_NSCHFDOPPR_", "ВерсФорм": "1.00", "ВерсПрог": "convert"}}
     branchs = {
         "СвУчДокОбор": {"ИдПол": "", "ИдОтпр": ""},
         "Документ": {"Функция": "СЧФ", "НаимЭконСубСост": "", "ДатаИнфПр": "", "ВремИнфПр": "00.00.00", "КНД": "1115131"},
@@ -84,7 +86,7 @@ def main(*args):
         "Подписант": None,
         "ЮЛ": {"ИННЮЛ": "", "Должн": ""}}
     leafs = {
-        "СвОЭДОтпр": {"ИдЭДО": "", "ИННЮЛ": "", "НаимОрг": "Наименование ЮЛ Оператора"},
+        "СвОЭДОтпр": {"НаимОрг": "Наименование ЮЛ Оператора", "ИдЭДО": "", "ИННЮЛ": ""},
         "СвЮЛПрод": {"Name": "СвЮЛУч", "ИННЮЛ": "", "НаимОрг": "", "КПП": ""},
         "АдрИнфПрод": {"Name": "АдрИнф", "АдрТекст": "", "КодСтр": ""},
         "СвЮЛПокуп": {"Name": "СвЮЛУч", "ИННЮЛ": "", "НаимОрг": "", "КПП": ""},
@@ -115,7 +117,11 @@ def main(*args):
     parentwin = model.CurrentController.Frame.ContainerWindow
     sheet = sheets[0]
     # Cell B2
-    string = Helpers.getData(parentwin, headDocument[0], sheet.getCellRangeByName("B2").String, "B2", 3)
+    string = Helpers.getData(
+        parentwin, headDocument[0],
+        sheet.getCellRangeByName("B2").String,
+        "B2",
+        3)
     space = 0
     day = ""
     month = ""
@@ -152,13 +158,20 @@ def main(*args):
         except SystemExit:
             return None
     # Cell B4
-    string = Helpers.getData(parentwin, headDocument[1], sheet.getCellRangeByName("B4").String, "B4")
+    string = Helpers.getData(
+        parentwin, headDocument[1],
+        sheet.getCellRangeByName("B4").String, "B4")
     leafs["СвЮЛПрод"]["НаимОрг"] = string
     # Cell B5
-    string = Helpers.getData(parentwin, headDocument[2], sheet.getCellRangeByName("B5").String, "B5")
+    string = Helpers.getData(
+        parentwin, headDocument[2],
+        sheet.getCellRangeByName("B5").String, "B5")
     leafs["АдрИнфПрод"]["АдрТекст"] = string
     # Cell B6
-    string = Helpers.getData(parentwin, headDocument[3], sheet.getCellRangeByName("B6").String, "B6")
+    string = Helpers.getData(
+        parentwin,
+        headDocument[3],
+        sheet.getCellRangeByName("B6").String, "B6")
     slash = 0
     for i in string:
         if i != "/":
@@ -169,13 +182,23 @@ def main(*args):
         else:
             slash += 1
     # Cell B10
-    string = Helpers.getData(parentwin, headDocument[4], sheet.getCellRangeByName("B10").String, "B10")
+    string = Helpers.getData(
+        parentwin, headDocument[4],
+        sheet.getCellRangeByName("B10").String,
+        "B10")
     leafs["СвЮЛПокуп"]["НаимОрг"] = string
     # Cell B11
-    string = Helpers.getData(parentwin, headDocument[5], sheet.getCellRangeByName("B11").String, "B11")
+    string = Helpers.getData(
+        parentwin, headDocument[5],
+        sheet.getCellRangeByName("B11").String,
+        "B11")
     leafs["АдрИнфПокуп"]["АдрТекст"] = string
     # Cell B12
-    string = Helpers.getData(parentwin, headDocument[6], sheet.getCellRangeByName("B12").String, "B12")
+    string = Helpers.getData(
+        parentwin,
+        headDocument[6],
+        sheet.getCellRangeByName("B12").String,
+        "B12")
     slash = 0
     for i in string:
         if i != "/":
@@ -186,7 +209,11 @@ def main(*args):
         else:
             slash += 1
     # Cell B13
-    string = Helpers.getData(parentwin, headDocument[7], sheet.getCellRangeByName("B13").String, "B13", 38)
+    string = Helpers.getData(
+        parentwin, headDocument[7],
+        sheet.getCellRangeByName("B13").String,
+        "B13",
+        38)
     leafs["АдрИнфПрод"]["КодСтр"] = string
     leafs["АдрИнфПокуп"]["КодСтр"] = string
     # Row 18
@@ -207,10 +234,30 @@ def main(*args):
     data["БезАкциз"] = branchs["СведТов"]["БезАкциз"]
     data["СумНал"] = float(branchs["СведТов"]["СумНал"])
 
+    doc = Helpers.createTag()
+
+    fileDoc = root["Файл"]
+    fileDoc = Helpers.createTag(root.popitem()[0], attributes=fileDoc)
+    doc.appendChild(fileDoc)
+
+    keysBranchs = list(branchs.keys())
+    keysLeafs = list(leafs.keys())
+
+    infDocTurn = branchs["СвУчДокОбор"]
+    infDocTurn = Helpers.createTag(keysBranchs[0], attributes=infDocTurn)
+    fileDoc.appendChild(infDocTurn)
+
+    infDigSent = leafs["СвОЭДОтпр"]
+    infDigSent = Helpers.createTag(keysLeafs[0], attributes=infDigSent)
+    infDocTurn.appendChild(infDigSent)
+
+    xmlData = doc.toprettyxml(indent=" ", newl="\n", encoding="windows-1251")
+    dateDoc = branchs["СвСчФакт"]["ДатаСчФ"]
+    numDoc = " №" + branchs["СвСчФакт"]["НомерСчФ"] + " от " + dateDoc
+    nameDoc = branchs["Документ"]["Функция"] + numDoc
     try:
-        with open(path + branchs["Документ"]["Функция"] + " №" + branchs["СвСчФакт"]["НомерСчФ"] + " от " + branchs["СвСчФакт"]["ДатаСчФ"] + ".xml", "w") as f:
-            fullPath = "<?xml version=\"1.0\" ?>" + "<root>" + "<leaf color=\"white\">" + fullPath + "</leaf>" + "<root>"
-            f.write(fullPath)
+        with open(path + nameDoc + ".xml", "w") as f:
+            f.write(xmlData.decode("windows-1251"))
     except IOError:
         error = "Error opening file"
         Helpers.showError(parentwin, error)
