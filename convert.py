@@ -162,6 +162,7 @@ def main(*args):
         parentwin, headDocument[1],
         sheet.getCellRangeByName("B4").String, "B4")
     leafs["СвЮЛПрод"]["НаимОрг"] = string
+    branchs["Документ"]["НаимЭконСубСост"] = string
     # Cell B5
     string = Helpers.getData(
         parentwin, headDocument[2],
@@ -216,6 +217,7 @@ def main(*args):
         38)
     leafs["АдрИнфПрод"]["КодСтр"] = string
     leafs["АдрИнфПокуп"]["КодСтр"] = string
+    branchs["СвСчФакт"]["КодОКВ"] = string
     # Row 18
     j = 1
     for i in [*cellsDocument]:
@@ -243,13 +245,29 @@ def main(*args):
     keysBranchs = list(branchs.keys())
     keysLeafs = list(leafs.keys())
 
-    infDocTurn = branchs["СвУчДокОбор"]
-    infDocTurn = Helpers.createTag(keysBranchs[0], attributes=infDocTurn)
-    fileDoc.appendChild(infDocTurn)
+    infoDocTurn = branchs["СвУчДокОбор"]
+    infoDocTurn = Helpers.createTag(keysBranchs[0], attributes=infoDocTurn)
+    fileDoc.appendChild(infoDocTurn)
 
-    infDigSent = leafs["СвОЭДОтпр"]
-    infDigSent = Helpers.createTag(keysLeafs[0], attributes=infDigSent)
-    infDocTurn.appendChild(infDigSent)
+    infoDigSent = leafs["СвОЭДОтпр"]
+    infoDigSent = Helpers.createTag(keysLeafs[0], attributes=infoDigSent)
+    infoDocTurn.appendChild(infoDigSent)
+
+    infoDoc = branchs["Документ"]
+    infoDoc = Helpers.createTag(keysBranchs[1], attributes=infoDoc)
+    fileDoc.appendChild(infoDoc)
+
+    infoInvoice = branchs["СвСчФакт"]
+    infoInvoice = Helpers.createTag(keysBranchs[2], attributes=infoInvoice)
+    infoDoc.appendChild(infoInvoice)
+
+    infoSeller = branchs["СвПрод"]
+    infoSeller = Helpers.createTag(keysBranchs[3], attributes=infoSeller)
+    infoInvoice.appendChild(infoSeller)
+
+    infoId = branchs["ИдСв"]
+    infoId = Helpers.createTag(keysBranchs[4], attributes=infoId)
+    infoSeller.appendChild(infoId)
 
     xmlData = doc.toprettyxml(indent=" ", newl="\n", encoding="windows-1251")
     dateDoc = branchs["СвСчФакт"]["ДатаСчФ"]
